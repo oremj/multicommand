@@ -1,0 +1,31 @@
+#!/usr/bin/python
+from optparse import OptionParser
+
+from multicommand import lib
+if __name__ == "__main__":
+	parser = OptionParser()
+	parser.add_option("-l", "--list", 
+			  action="store_true", 
+			  help="list systems in group")
+	parser.add_option("-g", "--list-groups", 
+			  action="store_true", 
+			  help="list systems in group")
+
+	parser.add_option("--list-complete-groups", 
+			  action="store_true", 
+			  help="list systems in group")
+
+	parser.add_option("-c", "--count",
+		          default=8,
+			  help="number of systems to run cmd on at once")
+	parser.disable_interspersed_args()
+	(options, args) = parser.parse_args()
+
+	if options.list:
+		print "\n".join(get_systems(args[0]))
+	elif options.list_complete_groups:
+		lib.list_groups(False)
+	elif options.list_groups:
+		lib.list_groups()
+	else:
+		lib.issue_command(args[0], " ".join(args[1:]), int(options.count))
