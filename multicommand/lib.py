@@ -5,7 +5,6 @@ import sys
 import threading
 import time
 
-from paramiko import AutoAddPolicy, SSHClient
 
 added_to_path = False
 if '/etc' not in sys.path:
@@ -26,14 +25,12 @@ YELLOW="\x1b[33;40m"
 GREEN="\x1b[32;40m"
 WHITE="\x1b[0m"
 
-
-def get_ssh_client(host):
-    client = SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(AutoAddPolicy)
-    client.connect(host)
-
-    return client
+def exec_ssh_command(host, cmd):
+    ssh_cmd = """ssh -T %s <<'EOF'
+    %s 
+EOF""" % (host, cmd)
+    p = subprocess.Popen(ssh_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return p.communicate()
 
 def get_systems(host_group):
     return multicommandconfig.hostgroups[host_group]
@@ -70,15 +67,15 @@ def issue_command(host_group, command_arg, count=8):
         def run(self):
             for host in self.hosts:
                 states[host] = 'did not finish'
-                client = get_ssh_client(host)
-                stdin, stdout, stderr = client.exec_command(self.command)
+                stdout, stderr = exec_ssh_command(host, self.command)
                 output =  "%s===%s===%s\n" % (GREEN, host, WHITE)
-                output += "".join(stdout.readlines())
-                command_err = "".join(stderr.readlines())
-                client.close()
+                output += stdout
+                command_err = stderr
                 output_lock.acquire()
                 print output
-                sys.stderr.write(command_err)
+                if command_err:
+                    print "====ERRORS===="
+                    print command_err
                 output_lock.release()
                 del states[host]
 
